@@ -1,20 +1,12 @@
 from dotenv import load_dotenv
 import os
-from openai import OpenAI  
+from google import genai
 
 load_dotenv()
 
-client = OpenAI(
-    api_key=os.getenv("Z.AI_API_KEY"),    
-    base_url=os.getenv("Z.AI_BASE_URL"), 
-)
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-response = client.chat.completions.create(
-    model="GLM-4.5-Flash",
-    messages=[
-        {"role": "system", "content": "You are a Malaysian tax assistant."},
-        {"role": "user", "content": "What is SST?"}
-    ]
+response = client.models.generate_content(
+    model="gemini-2.5-flash-lite", contents="Explain how AI works in a few words"
 )
-
-print(response.choices[0].message.content)
+print(response.text)
