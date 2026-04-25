@@ -731,28 +731,6 @@ npm run dev</code></pre>
 
 ---
 
-<h2 id="12-team-members">12. 👥 Team Members</h2>
-
-<table>
-  <tr>
-    <th>Member</th>
-    <th>Role</th>
-    <th>Responsibilities</th>
-  </tr>
-  <tr>
-    <td><strong>Yap Li Shan</strong></td>
-    <td>Backend Lead & AI Agent Architect</td>
-    <td>FastAPI architecture · SQLAlchemy schema · Z.AI GLM integration · 3 AI Agents (Tax Agent, Batch Analyzer, Workflow Orchestrator) · OCR service (PaddleOCR) · SST-02 PDF filling (pypdf AcroForm) · Digital signature overlay (ReportLab) · Email service · JWT + bcrypt auth · Accountant matching logic</td>
-  </tr>
-  <tr>
-    <td><strong>Chan Min Huey</strong></td>
-    <td>Frontend Lead & Product Manager</td>
-    <td>React 19 + TypeScript SPA · Owner & Accountant interfaces · SignaturePad canvas component · AI Chatbot floating widget · Axios API client with JWT interceptor · Responsive TailwindCSS styling · Demo preparation · Documentation coordination · Pitch deck design</td>
-  </tr>
-</table>
-
----
-
 <p align="center">
   <strong>Built with ❤️ by Team 166_EyeScream for UMHackathon 2026</strong>
 </p>
