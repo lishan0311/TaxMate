@@ -601,47 +601,84 @@ npm run dev</code></pre>
 
 <h2 id="10-project-structure">10. 📁 Project Structure</h2>
 
-<pre><code>taxmate/
+<pre><code>TaxMate/
+├── Documents/                       # Hackathon documentation
+│   ├── EyeScream_SAD_UMHackathon2026.pdf
+│   ├── EyeScream_QATD_UMHackathon2026.pdf
+│   └── EyeScream_PRD_UMHackathon2026.pdf
+├── Pitch Deck/
+│   └── Team 166 EyeScream.pdf
 ├── backend/
-│   ├── agents/                  # AI Agent implementations
-│   │   ├── tax_agent.py         # Single-doc Tax Agent + Batch Analyzer
-│   │   └── workflow_orchestrator.py  # 7-stage Workflow Orchestrator
-│   ├── services/                # Business logic layer
-│   │   ├── ocr_service.py       # PaddleOCR integration
-│   │   ├── document_service.py  # Document CRUD operations
-│   │   └── email_service.py     # Email delivery with AI content
-│   ├── routers/                 # API endpoint definitions
-│   ├── models/                  # SQLAlchemy ORM models
-│   ├── schemas/                 # Pydantic request/response schemas
-│   ├── templates/               # SST-02 PDF template (JKDM AcroForm)
-│   ├── main.py                  # FastAPI application entry point
+│   ├── app/
+│   │   ├── agents/                  # AI Agent implementations
+│   │   │   ├── tax_agent.py         # Single-doc Tax Agent + Batch Analyzer
+│   │   │   └── workflow_orchestrator.py  # 7-stage Workflow Orchestrator
+│   │   ├── services/                # Business logic layer
+│   │   │   ├── auth_service.py      # Authentication & JWT handling
+│   │   │   ├── ocr_service.py       # PaddleOCR integration
+│   │   │   ├── email_service.py     # Email delivery with AI content
+│   │   │   └── sst02_filler.py      # SST-02 PDF form auto-fill
+│   │   ├── routers/                 # API endpoint definitions
+│   │   │   ├── auth.py              # Auth endpoints (login/register)
+│   │   │   └── documents.py         # Document CRUD endpoints
+│   │   ├── models/                  # SQLAlchemy ORM models
+│   │   │   ├── database.py          # DB engine & session setup
+│   │   │   ├── user.py              # User model
+│   │   │   ├── document.py          # Document model
+│   │   │   └── init_db.py           # DB initialization script
+│   │   ├── schemas/                 # Pydantic request/response schemas
+│   │   │   └── document.py          # Document schemas
+│   │   ├── tools/                   # Agent tools (extensible)
+│   │   ├── static/uploads/          # User-uploaded document files
+│   │   ├── main.py                  # FastAPI application entry point
+│   │   └── __init__.py
+│   ├── templates/                   # SST-02 PDF template (JKDM AcroForm)
+│   ├── temp/                        # Temporary file storage
+│   ├── .env.example                 # Environment variable template
 │   └── requirements.txt
 ├── frontend/
+│   ├── public/
+│   │   ├── favicon.svg
+│   │   ├── icons.svg
+│   │   └── TaxMate_logo.png
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── owner/           # Owner interface pages
-│   │   │   │   ├── Dashboard.tsx
-│   │   │   │   ├── Upload.tsx
-│   │   │   │   ├── Documents.tsx
+│   │   │   ├── LoginPage.tsx        # Shared login page
+│   │   │   ├── Owner/               # Owner interface pages
+│   │   │   │   ├── OwnerDashboard.tsx
+│   │   │   │   ├── OwnerUpload.tsx
+│   │   │   │   ├── OwnerDocuments.tsx
+│   │   │   │   ├── OwnerDocumentDetail.tsx
 │   │   │   │   ├── TaxInsights.tsx
-│   │   │   │   ├── Downloads.tsx
-│   │   │   │   └── Profile.tsx
-│   │   │   └── accountant/      # Accountant interface pages
-│   │   │       ├── ClientList.tsx
-│   │   │       ├── Workbench.tsx
-│   │   │       ├── EfficiencySummary.tsx
-│   │   │       └── Profile.tsx
-│   │   ├── components/          # Shared React components
+│   │   │   │   ├── OwnerChatbot.tsx
+│   │   │   │   ├── OwnerDownloads.tsx
+│   │   │   │   ├── OwnerAuthCompany.tsx
+│   │   │   │   └── OwnerProfile.tsx
+│   │   │   └── Accountant/          # Accountant interface pages
+│   │   │       ├── AccountantClients.tsx
+│   │   │       ├── AccountantQueue.tsx
+│   │   │       ├── AccountantWorkbench.tsx
+│   │   │       ├── AccountantEfficiency.tsx
+│   │   │       └── AccountantProfile.tsx
+│   │   ├── components/              # Shared React components
 │   │   │   ├── SignaturePad.tsx
-│   │   │   ├── AgentThinkingPanel.tsx
-│   │   │   └── AIChatbot.tsx
-│   │   ├── api/                 # Axios API client
-│   │   ├── context/             # React context (auth, theme)
-│   │   └── lib/                 # Utility functions
+│   │   │   └── TaxPlanningAdvice.tsx
+│   │   ├── api/                     # Axios API client
+│   │   │   └── client.ts
+│   │   ├── context/                 # React context
+│   │   │   └── AuthContext.tsx       # Auth state provider
+│   │   ├── lib/                     # Utility functions
+│   │   │   ├── storage.ts           # Local storage helpers
+│   │   │   └── submissions.ts       # Submission helpers
+│   │   ├── App.tsx                  # Root app with routing
+│   │   ├── main.tsx                 # React entry point
+│   │   ├── types.ts                 # TypeScript type definitions
+│   │   └── index.css                # Global styles
 │   ├── package.json
 │   └── vite.config.ts
 ├── docker-compose.yml
-└── README.md</code></pre>
+├── LICENSE
+└── README.md
 
 ---
 
