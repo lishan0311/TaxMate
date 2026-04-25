@@ -2,6 +2,7 @@
 Authentication routes: register, login, profile for clients and accountants
 """
 import json
+import random
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Header
 from sqlalchemy.orm import Session
@@ -36,6 +37,7 @@ class ClientRegisterRequest(BaseModel):
     tin_number: str
     business_sector: str
     phone_number: Optional[str] = None
+    accountant_email: Optional[str] = None
 
 
 class AccountantRegisterRequest(BaseModel):
@@ -79,6 +81,7 @@ def _user_to_dict(user: User) -> dict:
         "tin_number": user.tin_number,
         "business_sector": user.business_sector,
         "phone_number": user.phone_number,
+        "bound_accountant_id": getattr(user, "bound_accountant_id", None),
         "name": user.name,
         "ic_number": user.ic_number,
         "expertise_areas": areas,
@@ -103,6 +106,31 @@ def _get_auth_user(authorization: Optional[str], db: Session) -> User:
 def register_client(req: ClientRegisterRequest, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == req.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    bound_accountant_id = None
+    if req.accountant_email:
+        acc = db.query(User).filter(User.email == req.accountant_email, User.role == "accountant").first()
+        if acc:
+            bound_accountant_id = acc.id
+    
+    if not bound_accountant_id:
+        accountants = db.query(User).filter(User.role == "accountant").all()
+        suitable = []
+        for a in accountants:
+            areas = []
+            if a.expertise_areas:
+                try:
+                    areas = json.loads(a.expertise_areas)
+                except Exception:
+                    pass
+            if req.business_sector in areas or "General / SME" in areas:
+                suitable.append(a)
+        
+        if suitable:
+            bound_accountant_id = random.choice(suitable).id
+        elif accountants:
+            bound_accountant_id = random.choice(accountants).id
+
     user = User(
         email=req.email,
         password_hash=hash_password(req.password),
@@ -111,6 +139,7 @@ def register_client(req: ClientRegisterRequest, db: Session = Depends(get_db)):
         tin_number=req.tin_number,
         business_sector=req.business_sector,
         phone_number=req.phone_number,
+        bound_accountant_id=bound_accountant_id,
     )
     db.add(user)
     db.commit()

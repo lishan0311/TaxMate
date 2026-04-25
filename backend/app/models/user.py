@@ -23,6 +23,7 @@ class User(Base):
     company_name = Column(String, nullable=True)
     tin_number = Column(String, nullable=True)       # Company TIN for SST form
     business_sector = Column(String, nullable=True)  # For matching accountants
+    bound_accountant_id = Column(String, nullable=True) # Linked accountant ID
 
     # Accountant fields
     name = Column(String, nullable=True)

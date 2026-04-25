@@ -1,8 +1,14 @@
+// OwnerUpload.tsx
 import { useMemo, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { uploadFilesInBatch } from '../../api/client'
 import TaxPlanningAdvice from '../../components/TaxPlanningAdvice'
-import { Upload, FileUp, CheckCircle, AlertCircle, Loader2, X, Sparkles } from 'lucide-react'
+import { Upload, FileUp, CheckCircle, AlertCircle, Loader2, X, Sparkles, ChevronRight } from 'lucide-react'
+
+const FONT_DISPLAY = "'Playfair Display', Georgia, serif"
+const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif"
+const COLOR_PRIMARY = "#0A3D7C" 
+const COLOR_ACCENT = "#F5A623"  
 
 interface UploadState {
   progress: number
@@ -90,10 +96,14 @@ export default function OwnerUpload() {
   const isAnyUploading = Object.values(states).some((s) => s.status === 'uploading')
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 p-6 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-black text-gray-900 tracking-tight">Upload Receipts</h1>
-        <p className="text-gray-500 mt-1">AI-powered SST extraction and tax classification</p>
+    <div className="max-w-5xl mx-auto space-y-10 p-8" style={{ fontFamily: FONT_BODY, color: '#334155' }}>
+      
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-3xl font-normal tracking-tight" style={{ color: COLOR_PRIMARY, fontFamily: FONT_DISPLAY }}>
+          Upload <span>Receipts</span>
+        </h1>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">AI-Powered Extraction & Classification</p>
       </div>
 
       {/* Drop zone */}
@@ -101,31 +111,28 @@ export default function OwnerUpload() {
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => { e.preventDefault(); setDragOver(false); addFiles(e.dataTransfer.files) }}
-        className={`relative border-2 border-dashed rounded-3xl p-12 text-center transition-all duration-300 ${
+        className={`relative border-2 border-dashed rounded-[2.5rem] p-16 text-center transition-all duration-300 ${
           dragOver
-            ? 'border-blue-500 bg-blue-50/50 scale-[1.01] shadow-xl'
-            : 'border-gray-200 bg-white hover:border-blue-400'
+            ? 'border-[#F5A623] bg-orange-50/30 scale-[1.01] shadow-2xl'
+            : 'border-blue-100 bg-white hover:border-blue-300 shadow-2xl shadow-blue-900/10'
         }`}
       >
         <div className="flex flex-col items-center">
-          <div className="bg-blue-100 p-4 rounded-2xl mb-4 text-blue-600">
-            <Upload size={32} />
+          <div className="bg-blue-50 p-6 rounded-[2rem] mb-6 text-[#0A3D7C]">
+            <Upload size={40} strokeWidth={1.5} />
           </div>
-          <h3 className="text-lg font-bold text-gray-800">Drag and drop receipts here</h3>
-          <p className="text-sm text-gray-500 mb-6">Supports PDF, JPG, and PNG formats</p>
+          <h3 className="text-xl font-bold text-slate-800 tracking-tight">Drag and drop receipts here</h3>
+          <p className="text-sm text-slate-400 mb-8 font-medium italic">Supports PDF, JPG, and PNG formats</p>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="flex items-center gap-2 bg-white border border-gray-200 px-6 py-2.5 rounded-xl text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 transition-all active:scale-95"
+            className="flex items-center gap-3 bg-[#0A3D7C] text-white px-8 py-3.5 rounded-2xl text-[11px] font-bold uppercase tracking-widest shadow-lg active:scale-95"
           >
-            <FileUp size={18} className="text-blue-500" /> Choose Files
+            <FileUp size={16} className="text-[#F5A623]" /> Choose Files
           </button>
           <input
             ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            accept=".pdf,.jpg,.jpeg,.png"
+            type="file" multiple className="hidden" accept=".pdf,.jpg,.jpeg,.png"
             onChange={(e) => addFiles(e.target.files)}
           />
         </div>
@@ -133,7 +140,7 @@ export default function OwnerUpload() {
 
       {/* File list */}
       {files.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {files.map((file) => {
             const s = states[file.name]
             const isSuccess = s?.status === 'success'
@@ -141,62 +148,45 @@ export default function OwnerUpload() {
             return (
               <div
                 key={file.name}
-                className={`bg-white border rounded-2xl p-5 shadow-sm transition-all relative ${
-                  isSuccess ? 'border-green-100 bg-green-50/10' : ''
-                }`}
+                className="bg-white border border-blue-50 rounded-[2rem] p-7 shadow-2xl shadow-blue-900/10 relative transition-all"
+                style={isSuccess ? { borderLeft: '6px solid #22c55e' } : isFailed ? { borderLeft: '6px solid #ef4444' } : {}}
               >
                 <button
                   type="button"
                   onClick={(e) => removeFile(file.name, e)}
-                  className="absolute -top-2 -right-2 z-20 bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full p-1 shadow-md border border-gray-100 transition-all active:scale-90"
+                  className="absolute -top-3 -right-3 z-20 bg-white text-slate-300 hover:text-red-500 rounded-full p-2.5 shadow-xl border border-blue-50"
                 >
-                  <X size={16} />
+                  <X size={18} />
                 </button>
-
-                <div className="flex gap-4">
-                  <div className="relative">
+                <div className="flex gap-6">
+                  <div className="relative shrink-0">
                     {previews.find((p) => p.name === file.name)?.url ? (
                       <img
                         src={previews.find((p) => p.name === file.name)?.url}
                         alt={file.name}
-                        className="w-16 h-16 object-cover rounded-xl border border-gray-100"
+                        className="w-24 h-24 object-cover rounded-2xl border border-blue-50"
                       />
                     ) : (
-                      <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400">
-                        <FileUp size={24} />
+                      <div className="w-24 h-24 bg-slate-50 rounded-2xl flex items-center justify-center text-blue-200">
+                        <FileUp size={36} />
                       </div>
                     )}
-                    <div className="absolute -bottom-1 -right-1">
-                      {isSuccess && <CheckCircle className="text-green-500 bg-white rounded-full" size={18} />}
-                      {isFailed && <AlertCircle className="text-red-500 bg-white rounded-full" size={18} />}
+                    <div className="absolute -bottom-2 -right-2">
+                      {isSuccess && <CheckCircle className="text-green-500 bg-white rounded-full p-0.5 shadow-lg" size={24} />}
+                      {isFailed && <AlertCircle className="text-red-500 bg-white rounded-full p-0.5 shadow-lg" size={24} />}
                     </div>
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 truncate text-sm">{file.name}</p>
-                    <p className="text-xs text-gray-400 mb-2">{(file.size / 1024).toFixed(1)} KB</p>
-                    <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full transition-all duration-500 ${
-                          isSuccess ? 'bg-green-500' : isFailed ? 'bg-red-500' : 'bg-blue-600'
-                        }`}
-                        style={{ width: `${s?.progress ?? 0}%` }}
-                      />
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <p className="font-bold text-[#0A3D7C] truncate text-base mb-1">{file.name}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4">{(file.size / 1024).toFixed(1)} KB</p>
+                    <div className="w-full bg-slate-50 h-2 rounded-full overflow-hidden mb-3 shadow-inner">
+                      <div className="h-full transition-all duration-1000 ease-out" style={{ width: `${s?.progress ?? 0}%`, background: isSuccess ? '#22c55e' : isFailed ? '#ef4444' : '#0A3D7C' }} />
                     </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span
-                        className={`text-[10px] font-black uppercase tracking-widest ${
-                          isSuccess ? 'text-green-600' : isFailed ? 'text-red-600' : 'text-gray-400'
-                        }`}
-                      >
-                        {s?.status || 'pending'}
-                      </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-[0.25em]" style={{ color: isSuccess ? '#22c55e' : isFailed ? '#ef4444' : '#94a3b8' }}>{s?.status || 'pending'}</span>
                       {s?.documentId && (
-                        <button
-                          className="text-blue-600 text-xs font-bold hover:underline"
-                          onClick={() => navigate(`/owner/documents/${s.documentId}`)}
-                        >
-                          View Details →
+                        <button className="text-blue-500 text-[10px] font-bold uppercase tracking-widest hover:text-[#0A3D7C] flex items-center gap-1.5 transition-colors" onClick={() => navigate(`/owner/documents/${s.documentId}`)}>
+                          View Details <ChevronRight size={14} />
                         </button>
                       )}
                     </div>
@@ -209,32 +199,35 @@ export default function OwnerUpload() {
       )}
 
       {/* Controls */}
-      <div className="flex gap-4 pt-4">
+      <div className="flex gap-6 pt-6">
         <button
           onClick={() => void startUpload()}
           disabled={files.length === 0 || isAnyUploading}
-          className="flex-1 bg-blue-600 text-white font-bold py-3 rounded-2xl shadow-lg hover:bg-blue-700 disabled:opacity-50 transition-all active:scale-95 flex items-center justify-center gap-2"
+          className="flex-1 text-white font-bold py-5 rounded-3xl shadow-2xl active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 text-[11px] uppercase tracking-[0.25em]"
+          style={{ background: COLOR_PRIMARY, boxShadow: '0 15px 35px -10px rgba(10,61,124,0.4)' }}
         >
-          {isAnyUploading ? <Loader2 className="animate-spin" /> : <Upload size={18} />}
-          Start Batch Upload
+          {isAnyUploading ? <Loader2 className="animate-spin" /> : <Upload size={20} />}
+          Start Batch Processing
         </button>
         <button
           disabled={failedFiles.length === 0 || isAnyUploading}
           onClick={() => void startUpload(failedFiles)}
-          className="bg-gray-900 text-white font-bold px-6 py-3 rounded-2xl disabled:opacity-30 transition-all flex items-center gap-2"
+          className="bg-slate-800 text-white font-bold px-10 py-5 rounded-3xl disabled:opacity-30 flex items-center gap-3 text-[11px] uppercase tracking-[0.25em] shadow-xl"
         >
           Retry Failed ({failedFiles.length})
         </button>
       </div>
 
-      {/* Tax planning advice — shown after successful upload */}
+      {/* Advice */}
       {uploadDone && successFiles.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-            <Sparkles size={16} className="text-indigo-500" />
-            {successFiles.length} receipt{successFiles.length > 1 ? 's' : ''} processed — here are your AI tax insights:
+        <div className="space-y-6 pt-10">
+          <div className="flex items-center gap-3 text-[11px] font-bold uppercase tracking-[0.25em] text-slate-500 bg-blue-50/50 w-fit px-5 py-2.5 rounded-full border border-blue-100">
+            <Sparkles size={18} className="text-[#F5A623]" />
+            {successFiles.length} item{successFiles.length > 1 ? 's' : ''} processed successfully
           </div>
-          <TaxPlanningAdvice />
+          <div className="bg-white rounded-[2.5rem] p-2 shadow-2xl shadow-blue-900/15 border border-blue-50">
+            <TaxPlanningAdvice />
+          </div>
         </div>
       )}
     </div>

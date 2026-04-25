@@ -4,6 +4,8 @@ export interface UserInfo {
   id: string
   email: string
   role: 'client' | 'accountant'
+  phone_number?: string | null
+  bound_accountant_id?: string | null
   // Client fields
   company_name?: string | null
   tin_number?: string | null
@@ -49,6 +51,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(newUser)
     localStorage.setItem('taxmate_token', newToken)
     localStorage.setItem('taxmate_user', JSON.stringify(newUser))
+    // Force redirect to correct home page based on role
+    const home = newUser.role === 'client' ? '/owner/dashboard' : '/accountant/clients'
+    window.location.href = home
   }
 
   function logout() {
@@ -56,6 +61,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null)
     localStorage.removeItem('taxmate_token')
     localStorage.removeItem('taxmate_user')
+    // Force redirect to login page, clearing any stale URL
+    window.location.href = '/'
   }
 
   return (

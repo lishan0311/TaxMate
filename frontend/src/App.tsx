@@ -14,6 +14,7 @@ import AccountantWorkbench from './pages/Accountant/AccountantWorkbench'
 import AccountantEfficiency from './pages/Accountant/AccountantEfficiency'
 import AccountantProfile from './pages/Accountant/AccountantProfile'
 import TaxInsights from './pages/Owner/TaxInsights'
+import OwnerChatbot from './pages/Owner/OwnerChatbot'   // ← 新增
 
 const queryClient = new QueryClient()
 
@@ -30,46 +31,96 @@ function AppShell() {
       ? user.company_name || user.email.split('@')[0]
       : user.name || user.email.split('@')[0]
 
+  const isClient = role === 'client'
+
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <Link to="/" className="text-xl font-bold text-blue-600">
-              TaxMate
+      {/* Full-page background */}
+      <div className="min-h-screen" style={{ background: '#EFF6FF' }}>
+
+        {/* Navbar */}
+        <nav
+          className="px-6 py-0"
+          style={{
+            background: 'linear-gradient(135deg, #0A3D7C 0%, #185FA5 100%)',
+            boxShadow: '0 2px 16px rgba(10,61,124,0.18)',
+          }}
+        >
+          <div className="max-w-6xl mx-auto flex items-center justify-between h-14">
+
+            {/* Logo */}
+            <Link to="/" className="flex items-center gap-2 group">
+              <img
+                src="/TaxMate_logo.png"
+                alt="TaxMate"
+                className="w-10 h-10 rounded-lg object-contain"
+              />
+              <span className="text-lg font-bold text-white tracking-tight">TaxMate</span>
             </Link>
 
-            <div className="flex items-center gap-4">
-              {role === 'client' ? (
+            {/* Nav links + user */}
+            <div className="flex items-center gap-1">
+              {isClient ? (
                 <>
-                  <Link to="/owner/dashboard" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Dashboard</Link>
-                  <Link to="/owner/documents" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Documents</Link>
-                  <Link to="/owner/report" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Tax Insights</Link>
-                  <Link to="/owner/downloads" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Downloads</Link>
-                  <Link to="/owner/profile" className="text-sm text-gray-600 hover:text-blue-600 transition-colors">Profile</Link>
+                  <NavLink to="/owner/dashboard">Dashboard</NavLink>
+                  <NavLink to="/owner/documents">Documents</NavLink>
+                  <NavLink to="/owner/report">Tax Insights</NavLink>
+                  <NavLink to="/owner/downloads">Downloads</NavLink>
+                  <NavLink to="/owner/profile">Profile</NavLink>
                 </>
               ) : (
                 <>
-                  <Link to="/accountant/clients" className="text-sm text-gray-600 hover:text-indigo-600 transition-colors">Clients</Link>
-                  <Link to="/accountant/efficiency" className="text-sm text-gray-600 hover:text-indigo-600 transition-colors">Efficiency</Link>
-                  <Link to="/accountant/profile" className="text-sm text-gray-600 hover:text-indigo-600 transition-colors">Profile</Link>
+                  <NavLink to="/accountant/clients">Clients</NavLink>
+                  <NavLink to="/accountant/efficiency">Efficiency</NavLink>
+                  <NavLink to="/accountant/profile">Profile</NavLink>
                 </>
               )}
 
-              {/* User badge */}
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
-                <div className={`w-2 h-2 rounded-full ${role === 'client' ? 'bg-blue-500' : 'bg-indigo-500'}`} />
-                <span className="text-xs font-semibold text-slate-600 max-w-30 truncate">{displayName}</span>
-                <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md ${
-                  role === 'client' ? 'bg-blue-100 text-blue-600' : 'bg-indigo-100 text-indigo-600'
-                }`}>
-                  {role === 'client' ? 'Owner' : 'Accountant'}
+              <div className="w-px h-5 mx-2" style={{ background: 'rgba(255,255,255,0.6)' }} />
+
+              <div
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl"
+                style={{ 
+                  background: 'rgba(255,255,255,0.12)', 
+                  border: '1.5px solid rgba(255,255,255,0.8)'
+                }}
+              >
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: isClient ? '#F5A623' : '#93C5FD' }}
+                />
+                <span className="text-xs font-semibold text-white max-w-[120px] truncate">
+                  {displayName}
+                </span>
+                <span
+                  className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-md"
+                  style={
+                    isClient
+                      ? { background: 'rgba(245,166,35,0.25)', color: '#FDE68A' }
+                      : { background: 'rgba(147,197,253,0.2)', color: '#BAE6FD' }
+                  }
+                >
+                  {isClient ? 'Owner' : 'Accountant'}
                 </span>
               </div>
 
               <button
                 onClick={logout}
-                className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors"
+                className="ml-2 text-xs font-semibold px-4 py-1.5 rounded-lg transition-all active:scale-95 shadow-md"
+                style={{ 
+                  background: '#F5A623', 
+                  color: '#ffffff', 
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  boxShadow: '0 0 12px rgba(245,166,35,0.4), 0 4px 8px rgba(0,0,0,0.3)'
+                }}
+                onMouseEnter={e => {
+                  (e.currentTarget as HTMLButtonElement).style.background = '#ffad26'
+                  ;(e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 20px rgba(245,166,35,0.6), 0 6px 12px rgba(0,0,0,0.4)'
+                }}
+                onMouseLeave={e => {
+                  (e.currentTarget as HTMLButtonElement).style.background = '#F5A623'
+                  ;(e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 12px rgba(245,166,35,0.4), 0 4px 8px rgba(0,0,0,0.3)'
+                }}
               >
                 Logout
               </button>
@@ -77,11 +128,12 @@ function AppShell() {
           </div>
         </nav>
 
+        {/* Page content */}
         <main className="max-w-6xl mx-auto py-8 px-6">
           <Routes>
             <Route
               path="/"
-              element={<Navigate to={role === 'client' ? '/owner/dashboard' : '/accountant/clients'} />}
+              element={<Navigate to={isClient ? '/owner/dashboard' : '/accountant/clients'} />}
             />
             <Route path="/owner/dashboard" element={<OwnerDashboard />} />
             <Route path="/owner/upload" element={<OwnerUpload />} />
@@ -99,8 +151,22 @@ function AppShell() {
             <Route path="/accountant/profile" element={<AccountantProfile />} />
           </Routes>
         </main>
+
+        {isClient && <OwnerChatbot />}
+
       </div>
     </BrowserRouter>
+  )
+}
+
+function NavLink({ to, children }: { to: string; children: React.ReactNode }) {
+  return (
+    <Link
+      to={to}
+      className="text-sm font-medium px-3 py-1.5 rounded-lg transition-all text-white hover:bg-white/10"
+    >
+      {children}
+    </Link>
   )
 }
 

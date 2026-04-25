@@ -26,10 +26,10 @@ class Document(Base):
     client_email = Column(String, nullable=True)        # for email notification
     company_name = Column(String, nullable=True)
 
-    # Agent 输出 (整个 JSON 存一列)
+    # Agent Output (The entire JSON is stored in one column)
     agent_result = Column(JSON, nullable=True)
 
-    # 从 agent_result 提取的关键字段 (方便查询和排序)
+    # Key fields extracted from agent_result (for easy querying and sorting)
     doc_type = Column(String, nullable=True)
     supplier_name = Column(String, nullable=True)
     total_amount = Column(Float, nullable=True)
@@ -37,7 +37,7 @@ class Document(Base):
     confidence = Column(Float, nullable=True)
     risk_count = Column(Float, default=0)
 
-    # 会计师审核
+    # Accountant Audit
     reviewed_by = Column(String, nullable=True)
     reviewed_at = Column(DateTime, nullable=True)
     review_action = Column(String, nullable=True)  # approved / rejected
@@ -47,6 +47,6 @@ class Document(Base):
     signed_at = Column(DateTime, nullable=True)
     signed_by = Column(String, nullable=True)
 
-    # 时间戳
+    # Timestamp
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

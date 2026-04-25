@@ -49,6 +49,7 @@ export default function LoginPage() {
   const [tinNumber, setTinNumber] = useState('')
   const [businessSector, setBusinessSector] = useState(BUSINESS_SECTORS[0])
   const [clientPhone, setClientPhone] = useState('')
+  const [accountantEmail, setAccountantEmail] = useState('')
 
   // Accountant register
   const [name, setName] = useState('')
@@ -76,24 +77,10 @@ export default function LoginPage() {
           const res = await loginUser({ email, password })
           login(res.token, res.user)
         } catch (loginErr: unknown) {
-          // Demo fallback: if backend is unreachable or user not registered,
-          // create a local demo session so the UI is still explorable.
-          const e = loginErr as { response?: { status?: number }; code?: string }
-          const isNetworkError = !e.response || e.code === 'ERR_NETWORK'
-          const isNotFound = e.response?.status === 401
-          if (isNetworkError || isNotFound) {
-            const demoUser = {
-              id: `demo-${Date.now()}`,
-              email,
-              role: role as 'client' | 'accountant',
-              ...(role === 'client'
-                ? { company_name: 'Demo Company Sdn Bhd', tin_number: 'W10-0000-00000000', business_sector: 'Others' }
-                : { name: email.split('@')[0], ic_number: '000000-00-0000', expertise_areas: ['General / SME'] }),
-            }
-            login('demo-token', demoUser)
-            return
-          }
-          throw loginErr
+          const e = loginErr as { response?: { data?: { detail?: string } }; message?: string }
+          setError(e.response?.data?.detail || e.message || 'Invalid email or password.')
+          setLoading(false)
+          return
         }
       } else if (role === 'client') {
         if (!companyName.trim() || !tinNumber.trim()) {
@@ -108,6 +95,7 @@ export default function LoginPage() {
           tin_number: tinNumber,
           business_sector: businessSector,
           phone_number: clientPhone || undefined,
+          accountant_email: accountantEmail || undefined,
         })
         login(res.token, res.user)
       } else {
@@ -140,57 +128,87 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-5">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: 'linear-gradient(150deg, #0A3D7C 0%, #185FA5 55%, #1e70bf 75%, #F5A623 160%)',
+      }}
+    >
+      {/* Decorative blobs */}
+      <div
+        className="pointer-events-none fixed top-0 right-0 w-72 h-72 rounded-full"
+        style={{ background: 'rgba(245,166,35,0.18)', transform: 'translate(30%, -30%)' }}
+      />
+      <div
+        className="pointer-events-none fixed bottom-0 left-0 w-56 h-56 rounded-full"
+        style={{ background: 'rgba(255,255,255,0.06)', transform: 'translate(-30%, 30%)' }}
+      />
+
+      <div className="w-full max-w-md space-y-5 relative z-10">
 
         {/* Logo */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-linear-to-br from-blue-600 to-indigo-700 rounded-2xl shadow-lg shadow-blue-200">
-            <span className="text-white text-2xl font-black">T</span>
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">TaxMate</h1>
-          <p className="text-sm text-slate-400">Malaysia SST Compliance Platform</p>
+          <img
+            src="/TaxMate_logo.png"
+            alt="TaxMate"
+            className="inline-block w-24 h-24 rounded-2xl object-contain"
+            style={{ boxShadow: '0 5px 24px rgba(255,255,255,0.25)', background: 'rgba(255,255,255,1)', padding: '12px', borderRadius: '16px' }}
+          />
+          <h1 className="text-2xl font-black text-white tracking-tight">TaxMate</h1>
+          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>Malaysia SST Compliance Platform</p>
         </div>
 
         {/* Mode toggle */}
-        <div className="flex bg-white border border-slate-200 rounded-2xl p-1 shadow-sm">
+        <div className="flex bg-white/10 border border-white/20 rounded-2xl p-1">
           <button
             onClick={() => { setMode('login'); setError('') }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              mode === 'login' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+            style={
+              mode === 'login'
+                ? { background: '#0A3D7C', color: '#fff' }
+                : { color: 'rgba(255,255,255,0.7)' }
+            }
           >
             Sign In
           </button>
           <button
             onClick={() => { setMode('register'); setError('') }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              mode === 'register' ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'
-            }`}
+            className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-all"
+            style={
+              mode === 'register'
+                ? { background: '#0A3D7C', color: '#fff' }
+                : { color: 'rgba(255,255,255,0.7)' }
+            }
           >
             Register
           </button>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 space-y-4" style={{ boxShadow: '0 8px 40px rgba(10,61,124,0.22)' }}>
 
           {/* Role toggle (always visible) */}
-          <div className="flex bg-slate-50 rounded-xl p-1">
+          <div className="flex rounded-xl p-1" style={{ background: '#E6F1FB' }}>
             <button
               onClick={() => { setRole('client'); setError('') }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${
-                role === 'client' ? 'bg-white text-blue-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-              }`}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all"
+              style={
+                role === 'client'
+                  ? { background: '#0A3D7C', color: '#fff' }
+                  : { color: '#185FA5' }
+              }
             >
               <Building2 size={15} />
               Business Owner
             </button>
             <button
               onClick={() => { setRole('accountant'); setError('') }}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all ${
-                role === 'accountant' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-400 hover:text-slate-600'
-              }`}
+              className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-bold transition-all"
+              style={
+                role === 'accountant'
+                  ? { background: '#F5A623', color: '#fff' }
+                  : { color: '#185FA5' }
+              }
             >
               <UserCheck size={15} />
               Accountant
@@ -205,7 +223,10 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
-              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-slate-50"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent bg-slate-50"
+              style={{ '--tw-ring-color': '#185FA5' } as React.CSSProperties}
+              onFocus={e => e.target.style.boxShadow = '0 0 0 2px #185FA5'}
+              onBlur={e => e.target.style.boxShadow = ''}
             />
           </div>
 
@@ -219,7 +240,9 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
-                className="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-slate-50"
+                className="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                onFocus={e => e.target.style.boxShadow = '0 0 0 2px #185FA5'}
+                onBlur={e => e.target.style.boxShadow = ''}
               />
               <button
                 type="button"
@@ -243,33 +266,39 @@ export default function LoginPage() {
                   value={companyName}
                   onChange={(e) => setCompanyName(e.target.value)}
                   placeholder="e.g. TaxMate Sdn Bhd"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #185FA5'}
+                  onBlur={e => e.target.style.boxShadow = ''}
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">
                   Company TIN Number
-                  <span className="ml-1 text-slate-400 normal-case font-normal">(for SST-02 form)</span>
+                  <span className="ml-1 text-slate-400 normal-case font-normal"></span>
                 </label>
                 <input
                   type="text"
                   value={tinNumber}
                   onChange={(e) => setTinNumber(e.target.value)}
                   placeholder="e.g. W10-2604-32000123"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #185FA5'}
+                  onBlur={e => e.target.style.boxShadow = ''}
                 />
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">
                   Business Sector
-                  <span className="ml-1 text-slate-400 normal-case font-normal">(for accountant matching)</span>
+                  <span className="ml-1 text-slate-400 normal-case font-normal"></span>
                 </label>
                 <select
                   value={businessSector}
                   onChange={(e) => setBusinessSector(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #185FA5'}
+                  onBlur={e => e.target.style.boxShadow = ''}
                 >
                   {BUSINESS_SECTORS.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -278,14 +307,32 @@ export default function LoginPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">
                   Phone Number
-                  <span className="ml-1 text-slate-400 normal-case font-normal">(for SST-02 form)</span>
+                  <span className="ml-1 text-slate-400 normal-case font-normal"></span>
                 </label>
                 <input
                   type="tel"
                   value={clientPhone}
                   onChange={(e) => setClientPhone(e.target.value)}
                   placeholder="e.g. 012-3456789"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #185FA5'}
+                  onBlur={e => e.target.style.boxShadow = ''}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">
+                  Accountant Email
+                  <span className="ml-1 text-slate-400 normal-case font-normal">(optional binding)</span>
+                </label>
+                <input
+                  type="email"
+                  value={accountantEmail}
+                  onChange={(e) => setAccountantEmail(e.target.value)}
+                  placeholder="e.g. accountant@taxmate.com"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #185FA5'}
+                  onBlur={e => e.target.style.boxShadow = ''}
                 />
               </div>
             </>
@@ -301,7 +348,9 @@ export default function LoginPage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Aminah binti Ahmad"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #F5A623'}
+                  onBlur={e => e.target.style.boxShadow = ''}
                 />
               </div>
 
@@ -314,7 +363,9 @@ export default function LoginPage() {
                   value={icNumber}
                   onChange={(e) => setIcNumber(e.target.value)}
                   placeholder="e.g. 850101-14-5678"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #F5A623'}
+                  onBlur={e => e.target.style.boxShadow = ''}
                 />
               </div>
 
@@ -329,11 +380,12 @@ export default function LoginPage() {
                       key={area}
                       type="button"
                       onClick={() => toggleExpertise(area)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold border transition-all"
+                      style={
                         expertiseAreas.includes(area)
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
-                      }`}
+                          ? { background: '#F5A623', color: '#fff', borderColor: '#F5A623' }
+                          : { background: '#fff', color: '#64748b', borderColor: '#e2e8f0' }
+                      }
                     >
                       {area}
                     </button>
@@ -350,7 +402,9 @@ export default function LoginPage() {
                   value={accountantPhone}
                   onChange={(e) => setAccountantPhone(e.target.value)}
                   placeholder="e.g. 011-2345678"
-                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-slate-50"
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none bg-slate-50"
+                  onFocus={e => e.target.style.boxShadow = '0 0 0 2px #F5A623'}
+                  onBlur={e => e.target.style.boxShadow = ''}
                 />
               </div>
             </>
@@ -366,11 +420,12 @@ export default function LoginPage() {
           <button
             onClick={() => void handleSubmit()}
             disabled={loading}
-            className={`w-full flex items-center justify-center gap-2 font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm ${
+            className="w-full flex items-center justify-center gap-2 font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 text-white"
+            style={
               role === 'accountant'
-                ? 'bg-linear-to-r from-indigo-600 to-purple-700 hover:from-indigo-700 hover:to-purple-800 text-white shadow-indigo-100'
-                : 'bg-linear-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-blue-100'
-            }`}
+                ? { background: '#F5A623', boxShadow: '0 2px 12px rgba(245,166,35,0.35)' }
+                : { background: '#0A3D7C', boxShadow: '0 2px 12px rgba(10,61,124,0.3)' }
+            }
           >
             {loading ? (
               <span className="animate-pulse">Processing...</span>
@@ -385,11 +440,16 @@ export default function LoginPage() {
 
         {/* Demo hint */}
         {mode === 'login' && (
-          <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
-            <p className="text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Demo — any email + any password works</p>
-            <p className="text-xs text-slate-400">
-              Select <span className="font-semibold text-blue-600">Business Owner</span> or{' '}
-              <span className="font-semibold text-indigo-600">Accountant</span> role, enter any email and password to log in as a demo user.
+          <div
+            className="rounded-2xl p-4"
+            style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)' }}
+          >
+            <p className="text-xs font-bold mb-2 uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.88)' }}>
+              Demo — any email + any password works
+            </p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.58)' }}>
+              Select <span className="font-semibold" style={{ color: '#93C5FD' }}>Business Owner</span> or{' '}
+              <span className="font-semibold" style={{ color: '#FCD34D' }}>Accountant</span> role, enter any email and password to log in as a demo user.
               To try real auth, register a new account first.
             </p>
           </div>

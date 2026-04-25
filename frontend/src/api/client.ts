@@ -31,6 +31,7 @@ export async function registerClient(payload: {
   tin_number: string
   business_sector: string
   phone_number?: string
+  accountant_email?: string
 }): Promise<AuthResponse> {
   const res = await api.post('/auth/register/client', payload)
   return res.data
@@ -183,5 +184,59 @@ export async function signSst02(payload: {
   client_id?: string
 }): Promise<{ success: boolean; message: string; pdf_base64: string; client_email: string; signed_by: string }> {
   const res = await api.post('/documents/sign-sst02', payload)
+  return res.data
+}
+
+export async function getReviewBrief(params?: {
+  year?: number
+  month?: number
+  client_id?: string
+}): Promise<{ brief: string; count: number }> {
+  const res = await api.get('/documents/review-brief', { params })
+  return res.data
+}
+
+export async function chatWithAgent(payload: {
+  question: string
+  year?: number
+  month?: number
+  client_id?: string
+}): Promise<{ answer: string; context_count: number }> {
+  const res = await api.post('/documents/chat', payload)
+  return res.data
+}
+
+export async function getSst02Audit(params?: {
+  year?: number
+  month?: number
+  client_id?: string
+}): Promise<{
+  rows: Array<{
+    b1_line: number
+    description: string
+    service_code: string
+    taxable_value: number
+    source_document_ids: string[]
+    source_receipts: Array<{ id: string; filename?: string; supplier_name?: string; total_amount?: number }>
+    reasoning: string
+    mapping_method: string
+  }>
+  totals: { item_11c_taxable: number; item_11c_tax: number }
+  notes: string
+  mapping_method: string
+  year: number
+  month: number
+  document_count: number
+}> {
+  const res = await api.get('/documents/sst02-audit', { params })
+  return res.data
+}
+
+export async function getWorkflowNextStep(intent: string = 'continue'): Promise<{
+  recommendation: string
+  thinking_steps: Array<{ step: number; type: string; action: string; input?: unknown; output?: string }>
+  actions_taken: string[]
+}> {
+  const res = await api.post('/documents/workflow/next-step', { intent })
   return res.data
 }

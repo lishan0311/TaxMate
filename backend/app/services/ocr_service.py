@@ -5,13 +5,20 @@ import logging
 import numpy as np
 from PIL import Image
 import pdfplumber
-from paddleocr import PaddleOCR
 
 logging.getLogger("ppocr").setLevel(logging.WARNING)
 
-print("[OCR] Loading PaddleOCR model...")
-ocr_engine = PaddleOCR(use_angle_cls=True, lang="ch")
-print("[OCR] PaddleOCR model ready")
+ocr_engine = None
+
+
+def _get_ocr_engine():
+    global ocr_engine
+    if ocr_engine is None:
+        print("[OCR] Loading PaddleOCR model (first use)...")
+        from paddleocr import PaddleOCR
+        ocr_engine = PaddleOCR(use_angle_cls=True, lang="ch")
+        print("[OCR] PaddleOCR model ready")
+    return ocr_engine
 
 
 def perform_ocr(file_bytes: bytes, filename: str) -> str:
@@ -23,7 +30,7 @@ def perform_ocr(file_bytes: bytes, filename: str) -> str:
             image = Image.open(io.BytesIO(file_bytes)).convert('RGB')
             img_array = np.array(image)
 
-            result = ocr_engine.ocr(img_array, det=True, rec=True, cls=True)
+            result = _get_ocr_engine().ocr(img_array, det=True, rec=True, cls=True)
 
             if result:
                 # Flatten PaddleOCR result regardless of nesting depth.
@@ -55,10 +62,10 @@ def perform_ocr(file_bytes: bytes, filename: str) -> str:
                         extracted_text += text + "\n"
 
         else:
-            raise ValueError(f"不支持的文件格式: {ext}")
+            raise ValueError(f"Unsupported file formats: {ext}")
 
     except Exception as e:
-        raise RuntimeError(f"OCR 引擎处理失败: {str(e)}")
+        raise RuntimeError(f"OCR Engine processing failed: {str(e)}")
 
     print(f"[OCR] Extracted {len(extracted_text)} characters")
     print(f"[OCR] Preview:\n{extracted_text[:300]}")

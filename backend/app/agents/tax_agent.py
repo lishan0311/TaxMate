@@ -1,43 +1,29 @@
 """
 TaxMate Tax Agent - v0.4
-Level 4 Agentic System:
-  L1 ✅ Structured JSON extraction
-  L2 ✅ Multi-step tool calling (agent decides which tools)
-  L3 ✅ Adaptive behavior + cross-validation
-  L4 ✅ Cross-document batch reasoning
- 
-Supports: Z.AI GLM (production) / Gemini (development)
 """
 from dotenv import load_dotenv
 import os
 import json
 import time
 import re
+from tenacity import retry, stop_after_attempt, wait_exponential
+from anthropic import Anthropic
+import httpx
  
 load_dotenv()
  
 # ============================================================
 # LLM Engine Selection
 # ============================================================
-USE_GEMINI = os.getenv("USE_GEMINI", "1") == "1"
- 
-if USE_GEMINI:
-    from google import genai
-    from google.genai import types as genai_types
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-    MODEL = "gemini-3.1-flash-lite-preview"
-    print("🔧 Using Gemini (dev mode)")
-else:
-    from openai import OpenAI
-    import httpx
-    client = OpenAI(
-        api_key=os.getenv("Z.AI_API_KEY"),
-        base_url=os.getenv("Z.AI_BASE_URL"),
-        timeout=httpx.Timeout(30.0, connect=10.0),
-        max_retries=2,
-    )
-    MODEL = "GLM-4.5-Flash"
-    print("🚀 Using Z.AI GLM (production mode)")
+
+client = Anthropic(
+    api_key=os.getenv("Z.AI_API_KEY"),
+    base_url="https://api.ilmu.ai/anthropic", 
+    timeout=httpx.Timeout(180.0, connect=30.0),
+    max_retries=2,
+)
+MODEL = "ilmu-glm-5.1"
+print("🚀 Using Z.AI GLM (production mode)")
  
  
 # ============================================================
@@ -277,193 +263,127 @@ def execute_tool(name: str, args: dict, ocr_text: str = "") -> str:
  
     elif name == "generate_tax_advice":
         context = args.get("context", "").lower()
-        tips = []
- 
-        if "no sst" in context or "missing" in context or "not claimable" in context:
-            tips.append("Request SST registration numbers from all regular suppliers. Without valid SST numbers, you cannot verify if tax was legitimately charged, and input tax deduction (for manufacturers) is not possible.")
-        if "f&b" in context or "food" in context or "restaurant" in context or "cafe" in context:
-            tips.append("F&B service tax increased to 8% from March 2024. If your business provides F&B services with turnover approaching RM 1.5M, prepare for SST registration.")
-        if "large" in context or "exceed" in context or "1000" in context:
-            tips.append("For invoices exceeding RM 1,000, ensure E-Invoice compliance under Phase 4 (mandatory from Jan 2026 for RM 1M-5M businesses).")
-        if "mismatch" in context or "warning" in context or "error" in context:
-            tips.append("Tax calculation discrepancies found. Have your accountant verify before filing SST-02 to avoid penalties (10-40% of underpaid tax).")
-        if not tips:
-            tips.append("Keep all original tax invoices for 7 years per JKDM requirements. Organize by taxable period for easy retrieval during audits.")
- 
-        return "Tax planning advice: " + " | ".join(tips)
+        advice_prompt = f"""Based on this Malaysian SME receipt analysis:
+{context}
+
+Give ONE specific, actionable tax planning tip.
+Requirements:
+- Relevant to Malaysian SST/Income Tax context
+- Concrete action for owner/accountant
+- Keep it concise (1-2 sentences)
+"""
+        try:
+            return "Tax planning advice: " + _generate_text(
+                prompt=advice_prompt,
+                system_instruction="You are a Malaysian SST compliance advisor.",
+                temperature=0.3,
+            )
+        except Exception:
+            return (
+                "Tax planning advice: Keep all original tax invoices for 7 years per JKDM "
+                "requirements and ensure supplier SST registration numbers are verified."
+            )
  
     return f"Unknown tool: {name}"
  
  
 # ============================================================
-# Gemini Agent Runner
-# ============================================================
-def _run_agent_gemini(ocr_text: str, max_steps: int = 8) -> dict:
-    """Multi-step agent using Gemini function calling."""
- 
-    gemini_tools = []
-    for name, defn in TOOL_DEFINITIONS.items():
-        gemini_tools.append(genai_types.Tool(
-            function_declarations=[
-                genai_types.FunctionDeclaration(
-                    name=name,
-                    description=defn["description"],
-                    parameters=defn["parameters"],
-                )
-            ]
-        ))
- 
-    thinking_steps = []
- 
-    chat = client.chats.create(
-        model=MODEL,
-        config=genai_types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            temperature=0.1,
-            tools=gemini_tools,
-        ),
-    )
- 
-    user_msg = f"Process this Malaysian receipt/invoice. Use ALL relevant tools before producing your final JSON:\n\n{ocr_text}"
-    tool_response_part = None
- 
-    for step in range(max_steps):
-        try:
-            if step == 0:
-                response = chat.send_message(user_msg)
-            else:
-                response = chat.send_message(tool_response_part)
- 
-            if not response.candidates:
-                thinking_steps.append({"step": step + 1, "type": "error", "action": "Empty response from model"})
-                continue
- 
-            candidate = response.candidates[0]
-            if not candidate.content or not candidate.content.parts:
-                thinking_steps.append({"step": step + 1, "type": "error", "action": "No content in response"})
-                continue
- 
-            part = candidate.content.parts[0]
- 
-            if part.function_call:
-                fc = part.function_call
-                func_name = fc.name
-                func_args = dict(fc.args) if fc.args else {}
- 
-                thinking_steps.append({
-                    "step": step + 1,
-                    "type": "tool_call",
-                    "action": f"Agent calls: {func_name}",
-                    "input": func_args,
-                })
- 
-                tool_result = execute_tool(func_name, func_args, ocr_text)
- 
-                thinking_steps.append({
-                    "step": step + 1,
-                    "type": "tool_result",
-                    "action": "Tool returns result",
-                    "output": tool_result[:500],
-                })
- 
-                tool_response_part = genai_types.Part.from_function_response(
-                    name=func_name,
-                    response={"result": tool_result},
-                )
- 
-            elif part.text:
-                final_text = part.text
-                thinking_steps.append({
-                    "step": step + 1,
-                    "type": "final_answer",
-                    "action": "Agent produces final classification",
-                })
- 
-                try:
-                    cleaned = _clean_json(final_text)
-                    result = json.loads(cleaned)
-                    result["thinking_steps"] = thinking_steps
-                    return result
-                except json.JSONDecodeError:
-                    return {"error": "invalid_json", "raw": final_text, "thinking_steps": thinking_steps}
- 
-        except Exception as e:
-            print(f"⚠️ Step {step+1} error: {e}")
-            thinking_steps.append({"step": step + 1, "type": "error", "action": str(e)})
-            continue
- 
-    return {"error": "max_steps_exceeded", "thinking_steps": thinking_steps}
- 
- 
-# ============================================================
-# Z.AI (OpenAI-compatible) Agent Runner
+# Z.AI/ILMU-GLM-5.1 Agent Runner
 # ============================================================
 def _run_agent_openai(ocr_text: str, max_steps: int = 8) -> dict:
-    """Multi-step agent using OpenAI-compatible function calling."""
- 
-    openai_tools = []
+    """Multi-step agent using Anthropic function calling (ILMU API)."""
+
+    # Anthropic 工具格式（和 OpenAI 不一样）
+    anthropic_tools = []
     for name, defn in TOOL_DEFINITIONS.items():
-        openai_tools.append({
-            "type": "function",
-            "function": {
-                "name": name,
-                "description": defn["description"],
-                "parameters": defn["parameters"],
-            }
+        anthropic_tools.append({
+            "name": name,
+            "description": defn["description"],
+            "input_schema": defn["parameters"]
         })
- 
+
     thinking_steps = []
+    
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": f"Process this Malaysian receipt/invoice. Use ALL relevant tools before producing your final JSON:\n\n{ocr_text}"}
+        {"role": "user", "content": f"""
+        {SYSTEM_PROMPT}
+        
+        Process this Malaysian receipt/invoice. Use ALL relevant tools before producing your final JSON:
+        
+        {ocr_text}
+        """}
     ]
- 
+
     for step in range(max_steps):
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=messages,
-            tools=openai_tools,
-            temperature=0.1,
-            timeout=30,
-        )
- 
-        msg = response.choices[0].message
- 
-        if msg.tool_calls:
-            messages.append(msg)
-            for tool_call in msg.tool_calls:
-                func_name = tool_call.function.name
-                func_args = json.loads(tool_call.function.arguments)
- 
-                thinking_steps.append({
-                    "step": step + 1,
-                    "type": "tool_call",
-                    "action": f"Agent calls: {func_name}",
-                    "input": func_args,
-                })
- 
-                tool_result = execute_tool(func_name, func_args, ocr_text)
- 
-                thinking_steps.append({
-                    "step": step + 1,
-                    "type": "tool_result",
-                    "action": "Tool returns result",
-                    "output": tool_result[:500],
-                })
- 
-                messages.append({
-                    "role": "tool",
-                    "tool_call_id": tool_call.id,
-                    "content": tool_result,
-                })
-        else:
-            final_text = msg.content
+        try:
+            # 🔧 Anthropic API 
+            response = client.messages.create(
+                model=MODEL,
+                messages=messages,
+                tools=anthropic_tools,
+                temperature=0.1,
+                max_tokens=4096,
+            )
+
+            if response.stop_reason == "tool_use":
+                tool_use_block = None
+                for block in response.content:
+                    if block.type == "tool_use":
+                        tool_use_block = block
+                        break
+                
+                if tool_use_block:
+                    func_name = tool_use_block.name
+                    func_args = tool_use_block.input
+
+                    thinking_steps.append({
+                        "step": step + 1,
+                        "type": "tool_call",
+                        "action": f"Agent calls: {func_name}",
+                        "input": func_args,
+                    })
+
+                    tool_result = execute_tool(func_name, func_args, ocr_text)
+
+                    thinking_steps.append({
+                        "step": step + 1,
+                        "type": "tool_result",
+                        "action": "Tool returns result",
+                        "output": tool_result[:500],
+                    })
+
+                    # 🔧 Message history in Anthropic format
+                    # 1. First add the assistant's replies (including tool_use)
+                    messages.append({
+                        "role": "assistant",
+                        "content": response.content
+                    })
+                    
+                    # 2. Add tool results (in a specific format)
+                    messages.append({
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_use_block.id,
+                                "content": tool_result
+                            }
+                        ]
+                    })
+                    continue
+
+            # No tool calls are the final answer.
+            final_text = ""
+            for block in response.content:
+                if block.type == "text":
+                    final_text += block.text
+
             thinking_steps.append({
                 "step": step + 1,
                 "type": "final_answer",
                 "action": "Agent produces final classification",
             })
- 
+
             try:
                 cleaned = _clean_json(final_text)
                 result = json.loads(cleaned)
@@ -471,9 +391,16 @@ def _run_agent_openai(ocr_text: str, max_steps: int = 8) -> dict:
                 return result
             except json.JSONDecodeError:
                 return {"error": "invalid_json", "raw": final_text, "thinking_steps": thinking_steps}
- 
+
+        except Exception as e:
+            print(f"⚠️ Step {step+1} error: {e}")
+            import traceback
+            traceback.print_exc()
+            thinking_steps.append({"step": step + 1, "type": "error", "action": str(e)})
+            continue
+
     return {"error": "max_steps_exceeded", "thinking_steps": thinking_steps}
- 
+
  
 # ============================================================
 # L4: Cross-Document Batch Analysis Agent
@@ -555,29 +482,32 @@ Respond ONLY with this JSON:
 }}"""
  
     try:
-        if USE_GEMINI:
-            response = client.models.generate_content(
-                model=MODEL,
-                contents=prompt,
-                config={
-                    "system_instruction": "You are a Malaysian SST compliance analyst performing batch document review. Be specific with numbers and supplier names.",
-                    "temperature": 0.2,
-                    "response_mime_type": "application/json",
-                },
-            )
-            return json.loads(_clean_json(response.text))
-        else:
-            response = client.chat.completions.create(
-                model=MODEL,
-                messages=[
-                    {"role": "system", "content": "You are a Malaysian SST compliance analyst. Be specific."},
-                    {"role": "user", "content": prompt}
-                ],
-                response_format={"type": "json_object"},
-                temperature=0.2,
-                timeout=60,
-            )
-            return json.loads(response.choices[0].message.content)
+        response = client.messages.create(
+            model=MODEL,
+            messages=[
+                {"role": "user", "content": f"{prompt}\n\nYOU MUST RESPOND WITH JSON ONLY, NO OTHER TEXT."}
+            ],
+            system="You are a Malaysian SST compliance analyst. Be specific.",
+            temperature=0.2,
+            max_tokens=4096,
+            timeout=60,
+        )
+
+        # Extract the returned text
+        final_text = ""
+        for block in response.content:
+            if block.type == "text":
+                final_text += block.text
+
+        # Clean and parse JSON
+        cleaned = _clean_json(final_text)
+        try:
+            return json.loads(cleaned)
+        except json.JSONDecodeError:
+            # Try to fix truncated JSON by closing open structures
+            fixed = _repair_json(cleaned)
+            return json.loads(fixed)
+
     except Exception as e:
         print(f"⚠️ Batch analysis error: {e}")
         return {
@@ -590,7 +520,6 @@ Respond ONLY with this JSON:
             "compliance_issues": [],
         }
  
- 
 # ============================================================
 # Unified Entry Points
 # ============================================================
@@ -602,6 +531,192 @@ def _clean_json(raw: str) -> str:
         if raw.endswith("```"):
             raw = raw.rsplit("```", 1)[0]
     return raw.strip()
+
+
+def _repair_json(raw: str) -> str:
+    """Attempt to fix truncated JSON by closing open structures."""
+    raw = raw.strip()
+    # Track open brackets/braces
+    in_string = False
+    escape_next = False
+    open_stack = []
+    for ch in raw:
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == '\\':
+            if in_string:
+                escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch in '{[':
+            open_stack.append(ch)
+        elif ch == '}' and open_stack and open_stack[-1] == '{':
+            open_stack.pop()
+        elif ch == ']' and open_stack and open_stack[-1] == '[':
+            open_stack.pop()
+    # Close any open string
+    if in_string:
+        raw += '"'
+    # Close open brackets/braces in reverse order
+    closing = {'{': '}', '[': ']'}
+    for bracket in reversed(open_stack):
+        raw += closing[bracket]
+    return raw
+
+
+@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+def _generate_text(prompt: str, system_instruction: str, temperature: float = 0.2) -> str:
+    """Unified text generation for Anthropic / ILMU-GLM-5.1."""
+    response = client.messages.create(
+        model=MODEL,
+        messages=[
+            {"role": "user", "content": prompt}
+        ],
+        system=system_instruction,
+        temperature=temperature,
+        max_tokens=2048,
+        timeout=60,
+    )
+
+    final_text = ""
+    for block in response.content:
+        if block.type == "text":
+            final_text += block.text
+    return final_text.strip()
+
+
+
+def generate_sst02_field_mapping(documents: list[dict]) -> dict:
+    """AI decides SST-02 mapping from document summaries."""
+    prompt = f"""You are filling an official Malaysian SST-02 return.
+Given these documents, decide mapping for SST-02 fields.
+
+Documents:
+{json.dumps(documents, indent=2, default=str)}
+
+Return JSON only with this structure:
+{{
+  "b1_rows": [
+    {{
+      "description": "string",
+      "service_code": "string",
+      "taxable_value": number,
+      "source_document_ids": ["doc_id_1", "doc_id_2"],
+      "reasoning": "short reason for mapping/rate selection"
+    }}
+  ],
+  "totals": {{
+    "item_11c_taxable": number,
+    "item_11c_tax": number,
+    "item_12_total_tax": number,
+    "item_13_deduction": number,
+    "item_15_penalty": number
+  }},
+  "exempt_rows": [
+    {{"description": "string", "value": number}}
+  ],
+  "notes": "string"
+}}
+"""
+    raw = _generate_text(
+        prompt=prompt,
+        system_instruction="You are a senior Malaysian SST practitioner. Output strict JSON only.",
+        temperature=0.1,
+    )
+    return json.loads(_clean_json(raw))
+
+
+def generate_review_brief(documents: list[dict]) -> str:
+    prompt = f"""You are preparing a review brief for a Malaysian chartered accountant.
+Summarize this document batch in 3-5 short paragraphs:
+1) Overall data quality
+2) High-risk documents (specific suppliers/amounts)
+3) Recommended checks before signing SST-02
+4) Compliance caveats
+
+Documents:
+{json.dumps(documents, indent=2, default=str)}
+"""
+    try:
+        return _generate_text(
+            prompt=prompt,
+            system_instruction="You are a practical accounting reviewer. Be specific and concise.",
+            temperature=0.2,
+        )
+    except Exception:
+        high_risk = [d for d in documents if (d.get("risk_count") or 0) > 0]
+        return (
+            f"Batch overview: {len(documents)} document(s) loaded.\n"
+            f"High-risk items: {len(high_risk)}.\n"
+            "Recommended: verify high-risk receipts, confirm supplier SST numbers, "
+            "then finalize SST-02 signing."
+        )
+
+
+def generate_personalized_email(summary: dict, month: int) -> str:
+    prompt = f"""Write a professional email body to a Malaysian SME owner about SST filing.
+Month: {month}/2026
+Summary: {json.dumps(summary, indent=2, default=str)}
+
+Include:
+- total payable
+- number of documents
+- key issues if any
+- filing reminder
+Keep under 200 words and friendly-professional tone.
+Do not add greeting or closing.
+"""
+    try:
+        return _generate_text(
+            prompt=prompt,
+            system_instruction="You write concise compliance notifications for SME owners.",
+            temperature=0.3,
+        )
+    except Exception:
+        return (
+            f"Your SST filing summary for {month}/2026 is ready. "
+            f"Total payable: RM {summary.get('net_payable', 0)}. "
+            f"Documents processed: {summary.get('total_documents', 0)}. "
+            "Please submit via MySST portal before the deadline."
+        )
+
+
+def answer_accountant_question(question: str, documents: list[dict]) -> str:
+    prompt = f"""You are TaxMate, Malaysian SST compliance assistant.
+Current month documents:
+{json.dumps(documents, indent=2, default=str)}
+
+Accountant question: {question}
+
+Answer using only these documents + Malaysian SST rules.
+If uncertain, say uncertainty explicitly.
+
+FORMAT RULES — follow strictly:
+- Do NOT use markdown formatting (no *, no **, no ##, no |, no backticks)
+- Use plain text only. For emphasis, use UPPERCASE words.
+- Use numbered lists like: 1. 2. 3.
+- Use dashes (-) for bullet points, but NOT asterisks.
+- For tables, use a simple lined format like:
+  Field: Value
+  Field: Value
+- Keep responses concise and well-structured.
+"""
+    try:
+        return _generate_text(
+            prompt=prompt,
+            system_instruction="You are an accountant copilot. Be specific and evidence-based. NEVER use markdown formatting (no *, **, ##, |, backticks). Use plain text only with numbered lists (1. 2. 3.) and dashes (-) for bullets.",
+            temperature=0.25,
+        )
+    except Exception:
+        return (
+            "AI copilot is temporarily unavailable due to model traffic. "
+            f"You can still proceed with manual review across {len(documents)} document(s)."
+        )
  
  
 def process_receipt(ocr_text: str, max_retries: int = 2) -> dict:
@@ -611,10 +726,7 @@ def process_receipt(ocr_text: str, max_retries: int = 2) -> dict:
     """
     for attempt in range(max_retries):
         try:
-            if USE_GEMINI:
-                return _run_agent_gemini(ocr_text)
-            else:
-                return _run_agent_openai(ocr_text)
+            return _run_agent_openai(ocr_text)
         except Exception as e:
             error_str = str(e)
             if "429" in error_str or "rate limit" in error_str.lower():

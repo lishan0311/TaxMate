@@ -47,21 +47,19 @@ class ProcessResponse(BaseModel):
     document_id: Optional[str] = None
 
 class DocumentReviewRequest(BaseModel):
-    """用于会计师修改和审核单据的请求体"""
-    tax_treatment: str          # 比如从 "unclear" 改为 "input_tax_claimable"
-    total_amount: float         # 修正金额
-    supplier_name: Optional[str] = None # 修正供应商名称
-    action: str                 # "approve" 或 "save_draft"
+    tax_treatment: str          
+    total_amount: float         
+    supplier_name: Optional[str] = None 
+    action: str                
 
 class DocumentRead(BaseModel):
     id: str
     filename: Optional[str] = None
-    file_url: Optional[str] = None  # <--- 关键：确保这里有 file_url
+    file_url: Optional[str] = None  
     ocr_text: str
     status: str
-    agent_result: Optional[AgentResult] = None # 引用上面定义好的 AgentResult
+    agent_result: Optional[AgentResult] = None 
     
-    # 辅助字段
     supplier_name: Optional[str] = None
     total_amount: Optional[float] = None
     tax_treatment: Optional[str] = None

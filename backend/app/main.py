@@ -16,7 +16,7 @@ create_tables()
 app = FastAPI(
     title="TaxMate API",
     description="AI agent for Malaysian SME E-Invoice & SST compliance",
-    version="0.2.0",
+    version="0.3.0",
 )
 
 app.add_middleware(
@@ -38,7 +38,11 @@ app.include_router(auth.router)
 
 @app.get("/")
 def root():
-    return {"service": "TaxMate", "version": "0.2.0", "status": "running"}
+    return {
+        "service": "TaxMate",
+        "version": "0.3.0",
+        "status": "running",
+    }
 
 
 @app.get("/health")

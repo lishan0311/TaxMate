@@ -3,7 +3,7 @@ from pathlib import Path
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 
-# 邮件服务器配置
+# Mail server configuration
 conf = ConnectionConfig(
     MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
     MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
@@ -17,27 +17,31 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True
 )
 
-async def send_approved_report_email(email_to: str, file_path: str, month: int):
+async def send_approved_report_email(email_to: str, file_path: str, month: int, ai_body: str | None = None):
     """
-    异步发送 SST-02 报告给老板
+    Send SST-02 report email to business owner
     """
+    body_html = ai_body or f"""
+        Your tax audit for {month}/2026 has been reviewed and e-signed by your accountant.<br>
+        <b>Your official SST-02 return is attached.</b><br>
+        Please download it and submit via the MySST portal. Contact your accountant if you have any questions.
+    """
+
     message = MessageSchema(
-        subject=f"【TaxMate】2026年{month}月 SST-02 报税单（已核准）",
+        subject=f"[TaxMate] SST-02 Return for {month}/2026 (Approved)",
         recipients=[email_to],
         body=f"""
         <html>
             <body>
-                <p>尊敬的老板，</p>
-                <p>您的 2026 年 {month} 月税务审计已由会计师核准并完成电子签名。</p>
-                <p><b>附件中为您的官方 SST-02 报税单。</b></p>
-                <p>请下载并登录 MySST 系统进行申报。如有疑问，请咨询您的专属会计师。</p>
+                <p>Dear Business Owner,</p>
+                <p>{body_html}</p>
                 <br>
-                <p><i>此邮件由 TaxMate 系统自动发出，请勿直接回复。</i></p>
+                <p><i>This email was sent automatically by TaxMate. Please do not reply directly.</i></p>
             </body>
         </html>
         """,
         subtype=MessageType.html,
-        attachments=[file_path] # 直接传入文件路径
+        attachments=[file_path]
     )
 
     fm = FastMail(conf)

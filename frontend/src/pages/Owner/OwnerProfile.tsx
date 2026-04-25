@@ -1,7 +1,13 @@
+// Fonts used: Playfair Display (headings) + Inter (body)
 import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { updateProfile } from '../../api/client'
-import { Building2, Phone, Hash, Briefcase, Save, CheckCircle2 } from 'lucide-react'
+import { Building2, Phone, Hash, Briefcase, Save, CheckCircle2, ChevronDown } from 'lucide-react'
+
+const FONT_DISPLAY = "'Playfair Display', Georgia, serif"
+const FONT_BODY = "'Inter', system-ui, -apple-system, sans-serif"
+const COLOR_PRIMARY = "#0A3D7C" 
+const COLOR_ACCENT = "#F5A623"  
 
 const BUSINESS_SECTORS = [
   'Food & Beverage', 'Retail & Trading', 'Manufacturing',
@@ -43,95 +49,117 @@ export default function OwnerProfile() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-2xl font-black text-slate-900 tracking-tight">Company Profile</h1>
-        <p className="text-sm text-slate-400 mt-1">Update your company details used in SST-02 filings.</p>
+    <div className="max-w-2xl mx-auto space-y-10 p-8 pb-32" style={{ fontFamily: FONT_BODY, color: '#334155' }}>
+      
+      {/* Header */}
+      <div className="space-y-1">
+        <h1 className="text-3xl font-normal tracking-tight" style={{ color: COLOR_PRIMARY, fontFamily: FONT_DISPLAY }}>
+          Company Profile
+        </h1>
+        <p className="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold">
+          Update your company details
+        </p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-8 space-y-6">
+      {/* Main Card - Darken the shadows to align with Dashboard */}
+      <div 
+        className="bg-white rounded-[2.5rem] border border-blue-50 p-10 space-y-8" 
+        style={{ boxShadow: '0 12px 40px rgba(10,61,124,0.12)' }}
+      >
 
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-          <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-            <Building2 size={20} className="text-blue-600" />
+        {/* Company Identity Banner */}
+        <div className="flex items-center gap-5 pb-8 border-b border-blue-50">
+          <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center shadow-inner">
+            <Building2 size={24} className="text-blue-500" />
           </div>
           <div>
-            <p className="font-bold text-slate-800">{user?.company_name ?? 'Your Company'}</p>
-            <p className="text-xs text-slate-400">{user?.email}</p>
+            <p className="text-xl font-bold text-slate-800" style={{ color: COLOR_PRIMARY }}>
+              {user?.company_name || 'Your Company'}
+            </p>
+            <p className="text-xs text-slate-400 font-medium">{user?.email}</p>
           </div>
         </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Company Name</label>
-          <div className="relative">
-            <Building2 size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
-              placeholder="e.g. TaxMate Sdn Bhd"
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
-            />
+        {/* Form Fields */}
+        <div className="space-y-6">
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest ml-1">Company Name</label>
+            <div className="relative group">
+              <Building2 size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-200 transition-colors group-focus-within:text-blue-400" />
+              <input
+                type="text"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="e.g. TaxMate Sdn Bhd"
+                className="w-full pl-11 pr-4 py-3 border border-blue-50 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 shadow-sm"
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">
-            Company TIN Number <span className="text-slate-400 normal-case font-normal">(SST-02 form)</span>
-          </label>
-          <div className="relative">
-            <Hash size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={tinNumber}
-              onChange={(e) => setTinNumber(e.target.value)}
-              placeholder="e.g. W10-2604-32000123"
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
-            />
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest ml-1">
+              Company TIN Number <span className="normal-case font-medium opacity-60"></span>
+            </label>
+            <div className="relative group">
+              <Hash size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-200 transition-colors group-focus-within:text-blue-400" />
+              <input
+                type="text"
+                value={tinNumber}
+                onChange={(e) => setTinNumber(e.target.value)}
+                placeholder="e.g. W10-2604-32000123"
+                className="w-full pl-11 pr-4 py-3 border border-blue-50 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 shadow-sm"
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">
-            Phone Number <span className="text-slate-400 normal-case font-normal">(SST-02 form)</span>
-          </label>
-          <div className="relative">
-            <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="e.g. 012-3456789"
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
-            />
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest ml-1">
+              Phone Number <span className="normal-case font-medium opacity-60"></span>
+            </label>
+            <div className="relative group">
+              <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-200 transition-colors group-focus-within:text-blue-400" />
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                placeholder="e.g. 012-3456789"
+                className="w-full pl-11 pr-4 py-3 border border-blue-50 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 shadow-sm"
+              />
+            </div>
           </div>
-        </div>
 
-        <div>
-          <label className="block text-xs font-bold text-slate-600 mb-1.5 uppercase tracking-wide">Business Sector</label>
-          <div className="relative">
-            <Briefcase size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <select
-              value={businessSector}
-              onChange={(e) => setBusinessSector(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-slate-50"
-            >
-              {BUSINESS_SECTORS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </select>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-widest ml-1">Business Sector</label>
+            <div className="relative group">
+              <Briefcase size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-200 transition-colors group-focus-within:text-blue-400" />
+              <select
+                value={businessSector}
+                onChange={(e) => setBusinessSector(e.target.value)}
+                className="appearance-none w-full pl-11 pr-10 py-3 border border-blue-50 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all text-slate-700 shadow-sm bg-white cursor-pointer"
+              >
+                {BUSINESS_SECTORS.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+              <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-blue-300" />
+            </div>
           </div>
         </div>
 
         {error && (
-          <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-xl px-4 py-2">{error}</p>
+          <p className="text-xs font-bold text-red-500 bg-red-50 border border-red-100 rounded-2xl px-5 py-3 uppercase tracking-wider">{error}</p>
         )}
 
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition-all active:scale-[0.98] disabled:opacity-50 shadow-sm"
+          className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-[11px] uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-50"
+          style={{ 
+            background: saved ? '#22c55e' : COLOR_ACCENT, 
+            color: 'white',
+            boxShadow: saved ? '0 10px 25px -5px rgba(34,197,94,0.4)' : '0 10px 25px -5px rgba(245,166,35,0.4)'
+          }}
         >
           {saved ? <CheckCircle2 size={16} /> : <Save size={16} />}
-          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
+          {saving ? 'Saving...' : saved ? 'Changes Saved' : 'Update Profile'}
         </button>
       </div>
     </div>
